@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard do Ensalamento da FT/UFAM - 2026-1 (V2)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#f4f7fb,#eaf1fb);color:#16324f}
+.container{max-width:1400px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#0f4c81,#1d7bb8);color:#fff;border-radius:24px;padding:28px;box-shadow:0 14px 40px rgba(16,76,129,.18);margin-bottom:18px}
+.hero h1{margin:0 0 10px 0;font-size:34px}.hero p{margin:0;color:#dcefff;font-size:15px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin:16px 0}.grid22{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+.card{background:#ffffff;border:1px solid #d9e5f2;border-radius:20px;padding:18px;box-shadow:0 10px 24px rgba(30,64,175,.08)}
+.kpi-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b86a3;font-weight:700;margin-bottom:12px}.kpi-value{font-size:40px;font-weight:800;line-height:1}.kpi-sub{font-size:12px;color:#6d7f93;margin-top:10px}
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:#56708f;font-weight:800;margin-bottom:12px}.canvas-wrap{position:relative;height:360px}.canvas-small{position:relative;height:290px}
+.bar-row{margin-bottom:12px}.bar-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}.bar-track{height:10px;background:#e8eef7;border-radius:999px;overflow:hidden}.bar-fill{height:100%;border-radius:999px}
+.tip{background:#f8fbff;border:1px solid #d7e7fb;border-radius:16px;padding:14px}.tip h4{margin:0 0 6px 0;font-size:13px}.tip p{margin:0;font-size:12px;line-height:1.5;color:#5f7287}
+@media (max-width:1100px){.grid4,.grid2,.grid22,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="hero"><div style="font-size:14px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px">FT UFAM</div><h1>Dashboard do Ensalamento da FT/UFAM - 2026-1 (V2)</h1><p>Painel visual para apoiar decisões de ensalamento, priorização de salas, distribuição por turno e leitura de demanda por curso.</p></div>
+<div class="grid4">
+<div class="card"><div class="kpi-title">Total de Cursos</div><div class="kpi-value" style="color:#0ea5e9" id="kpiCursos"></div><div class="kpi-sub">Cursos distintos em NOMEDOCURSO</div></div>
+<div class="card"><div class="kpi-title">Total de Disciplinas</div><div class="kpi-value" style="color:#f59e0b" id="kpiDiscs"></div><div class="kpi-sub">Disciplinas distintas em DISC</div></div>
+<div class="card"><div class="kpi-title">Total de Turmas</div><div class="kpi-value" style="color:#8b5cf6" id="kpiTurmas"></div><div class="kpi-sub">Ofertas registradas na planilha</div></div>
+<div class="card"><div class="kpi-title">Capacidade Média</div><div class="kpi-value" style="color:#10b981" id="kpiCap"></div><div class="kpi-sub">Média de CAPMAXTUR</div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="section-title">Número de disciplinas por curso</div><div class="canvas-wrap"><canvas id="cursoChart"></canvas></div></div>
+<div class="card"><div class="section-title">Número de disciplinas por turno</div><div class="canvas-wrap"><canvas id="turnoChart"></canvas></div><div id="turnoResumo" style="margin-top:14px"></div></div>
+</div>
+<div class="grid22">
+<div class="card"><div class="section-title">Distribuição por faixa de capacidade</div><div class="canvas-small"><canvas id="capChart"></canvas></div></div>
+<div class="card"><div class="section-title">Carga por dia da semana</div><div class="canvas-small"><canvas id="diaChart"></canvas></div></div>
+</div>
+<div class="grid22">
+<div class="card"><div class="section-title">Locais mais usados</div><div id="locaisList"></div></div>
+<div class="card"><div class="section-title">Departamentos ofertantes com mais turmas</div><div id="deptList"></div></div>
+</div>
+<div class="grid3">
+<div class="card"><div class="kpi-title">Curso com maior oferta</div><div class="kpi-value" style="font-size:26px;color:#ef4444" id="topCursoValor"></div><div class="kpi-sub" id="topCursoNome"></div></div>
+<div class="card"><div class="kpi-title">Turno dominante</div><div class="kpi-value" style="font-size:26px;color:#2563eb" id="topTurnoValor"></div><div class="kpi-sub" id="topTurnoNome"></div></div>
+<div class="card"><div class="kpi-title">Local mais demandado</div><div class="kpi-value" style="font-size:26px;color:#ea580c" id="topLocalValor"></div><div class="kpi-sub" id="topLocalNome"></div></div>
+</div>
+<div class="card"><div class="section-title">Indicadores úteis para melhorar o ensalamento</div><div class="grid3" id="tipsGrid" style="margin:0"></div></div>
+</div>
+<script>
+const DATA = {"title": "Dashboard do Ensalamento da FT/UFAM - 2026-1 (V2)", "totalCursos": 15, "totalDiscs": 256, "totalTurmas": 366, "avgCap": 43.0, "discPorCurso": [{"curso": "Engenharia Civil", "count": 44}, {"curso": "PR (Produção)", "count": 33}, {"curso": "EL (Eletrotécnica)", "count": 31}, {"curso": "Engenharia Química", "count": 31}, {"curso": "ME (Mecânica)", "count": 29}, {"curso": "MA (Materiais)", "count": 28}, {"curso": "Arquitetura e Urbanismo", "count": 27}, {"curso": "Engenharia da Computação", "count": 27}, {"curso": "PG (Petróleo e Gás)", "count": 26}, {"curso": "ET (Telecomunicações)", "count": 25}, {"curso": "EE (Eletrônica)", "count": 23}, {"curso": "Design", "count": 22}, {"curso": "Pós-Graduação em Engenharia Civil", "count": 6}, {"curso": "Pós-Graduação em Engenharia Materiais", "count": 5}, {"curso": "Pós-Graduação em Design", "count": 4}], "discPorTurno": [{"turno": "Vespertino", "count": 146}, {"turno": "Matutino", "count": 86}, {"turno": "Noturno", "count": 49}], "tipTur": [{"tipo": "Única", "count": 259}, {"tipo": "Agrupada", "count": 107}], "capFaixas": [{"faixa": "1-20", "count": 16}, {"faixa": "21-40", "count": 126}, {"faixa": "41-60", "count": 186}, {"faixa": "61-80", "count": 11}, {"faixa": "81-100", "count": 12}, {"faixa": "101+", "count": 0}], "diasSemana": [{"dia": "Seg", "count": 151}, {"dia": "Ter", "count": 161}, {"dia": "Qua", "count": 158}, {"dia": "Qui", "count": 161}, {"dia": "Sex", "count": 63}], "topLocais": [{"local": "Sala 06", "count": 21}, {"local": "Sala 16", "count": 18}, {"local": "Sala 03", "count": 15}, {"local": "Sala 02", "count": 15}, {"local": "Sala 01", "count": 14}, {"local": "Sala 04", "count": 14}, {"local": "Sala 15", "count": 13}, {"local": "Sala 13", "count": 12}, {"local": "Sala 05", "count": 12}, {"local": "Sala 10", "count": 11}], "topDepof": [{"dept": "Eng. Civil - DEC", "count": 32}, {"dept": "DEG", "count": 23}, {"dept": "Engenharia de Produção", "count": 21}, {"dept": "FT - DEMEC", "count": 16}, {"dept": "DEQ/FT", "count": 16}, {"dept": "Departamento de Arquitetura e Urbanismo", "count": 15}, {"dept": "Depeg/FT", "count": 15}, {"dept": "DEMA-FT", "count": 15}, {"dept": "Icomp", "count": 15}, {"dept": "De - Depto De Eletricidade", "count": 13}]};
+const COLORS = ['#0ea5e9','#f59e0b','#8b5cf6','#10b981','#ef4444','#2563eb','#ea580c','#84cc16','#14b8a6','#eab308','#ec4899','#64748b','#06b6d4','#f97316','#22c55e'];
+function fillBarList(targetId, rows, nameKey, colorList){const maxVal = Math.max.apply(null, rows.map(function(item){return item.count;})); const host = document.getElementById(targetId); host.innerHTML = rows.map(function(item, idx){const pct = Math.round((item.count / maxVal) * 100); return '<div class="bar-row"><div class="bar-head"><span>' + item[nameKey] + '</span><strong style="color:' + colorList[idx % colorList.length] + '">' + item.count + '</strong></div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + colorList[idx % colorList.length] + '"></div></div></div>';}).join('');}
+function addTips(){const maiorCurso = DATA.discPorCurso[0]; const maiorTurno = DATA.discPorTurno[0]; const maiorLocal = DATA.topLocais[0]; const tips = [{c:'#f59e0b',t:'Pressão no turno principal',x:'O turno com maior número de disciplinas é ' + maiorTurno.turno + ' com ' + maiorTurno.count + ' disciplinas. Vale concentrar salas maiores e mais flexíveis nesse período.'},{c:'#0ea5e9',t:'Curso com maior demanda',x:'O curso com maior oferta é ' + maiorCurso.curso + '. Isso ajuda a reservar blocos de salas com antecedência e reduzir deslocamentos.'},{c:'#10b981',t:'Capacidade mais crítica',x:'A maior parte das turmas se concentra nas faixas intermediárias de capacidade. Isso é útil para priorizar salas entre 41 e 60 lugares.'},{c:'#8b5cf6',t:'Picos semanais',x:'A leitura por dia da semana ajuda a redistribuir oferta e reduzir concentração excessiva em dias mais carregados.'},{c:'#ef4444',t:'Uso concentrado de ambientes',x:'O local mais usado é ' + maiorLocal.local + '. Diversificar alocações pode reduzir gargalos e conflitos operacionais.'},{c:'#2563eb',t:'Oferta por departamento',x:'Os departamentos mais ativos podem ser tratados com regras de agrupamento e prioridade para melhorar a logística.'}]; document.getElementById('tipsGrid').innerHTML = tips.map(function(item){return '<div class="tip"><h4 style="color:' + item.c + '">' + item.t + '</h4><p>' + item.x + '</p></div>';}).join('');}
+document.getElementById('kpiCursos').textContent = DATA.totalCursos;
+document.getElementById('kpiDiscs').textContent = DATA.totalDiscs;
+document.getElementById('kpiTurmas').textContent = DATA.totalTurmas;
+document.getElementById('kpiCap').textContent = DATA.avgCap;
+document.getElementById('topCursoValor').textContent = DATA.discPorCurso[0].count;
+document.getElementById('topCursoNome').textContent = DATA.discPorCurso[0].curso;
+document.getElementById('topTurnoValor').textContent = DATA.discPorTurno[0].count;
+document.getElementById('topTurnoNome').textContent = DATA.discPorTurno[0].turno;
+document.getElementById('topLocalValor').textContent = DATA.topLocais[0].count;
+document.getElementById('topLocalNome').textContent = DATA.topLocais[0].local;
+document.getElementById('turnoResumo').innerHTML = DATA.discPorTurno.map(function(item){return '<div style="display:flex;justify-content:space-between;padding:10px 12px;margin-top:8px;background:#f7fbff;border:1px solid #dde9f7;border-radius:12px"><span>' + item.turno + '</span><strong style="color:#16324f">' + item.count + '</strong></div>';}).join('');
+fillBarList('locaisList', DATA.topLocais, 'local', COLORS);
+fillBarList('deptList', DATA.topDepof, 'dept', COLORS);
+addTips();
+new Chart(document.getElementById('cursoChart'), {type:'bar',data:{labels:DATA.discPorCurso.map(function(d){return d.curso;}),datasets:[{label:'Disciplinas',data:DATA.discPorCurso.map(function(d){return d.count;}),backgroundColor:COLORS,borderRadius:8}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#e2e8f0'}},y:{grid:{display:false}}}}});
+new Chart(document.getElementById('turnoChart'), {type:'doughnut',data:{labels:DATA.discPorTurno.map(function(d){return d.turno;}),datasets:[{data:DATA.discPorTurno.map(function(d){return d.count;}),backgroundColor:['#f59e0b','#0ea5e9','#8b5cf6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+new Chart(document.getElementById('capChart'), {type:'bar',data:{labels:DATA.capFaixas.map(function(d){return d.faixa;}),datasets:[{label:'Turmas',data:DATA.capFaixas.map(function(d){return d.count;}),backgroundColor:COLORS.slice(0,DATA.capFaixas.length),borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#e2e8f0'}}}}});
+new Chart(document.getElementById('diaChart'), {type:'bar',data:{labels:DATA.diasSemana.map(function(d){return d.dia;}),datasets:[{label:'Aulas',data:DATA.diasSemana.map(function(d){return d.count;}),backgroundColor:'#0ea5e9',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#e2e8f0'}}}}});
+</script>
+</body>
+</html>
